@@ -39,35 +39,41 @@ BufMgr::BufMgr(std::uint32_t bufs)
 }
 
 
+// TODO(sahibgoa)
 BufMgr::~BufMgr() {
 }
 
+// TODO(sreejita)
 void BufMgr::advanceClock()
 {
 }
 
+// TODO(sahibgoa)
 void BufMgr::allocBuf(FrameId & frame) 
 {
 }
 
-	
+// TODO(sahibgoa)	
 void BufMgr::readPage(File* file, const PageId pageNo, Page*& page)
 {
 }
 
-
+// TODO(hayleejane)
 void BufMgr::unPinPage(File* file, const PageId pageNo, const bool dirty) 
 {
 }
 
+// TODO(hayleejane)
 void BufMgr::allocPage(File* file, PageId &pageNo, Page*& page) 
 {
 }
 
+// TODO(sreejita)
 void BufMgr::flushFile(const File* file) 
 {
 }
 
+// TODO(sreejita)
 void BufMgr::disposePage(File* file, const PageId PageNo)
 {
 }
