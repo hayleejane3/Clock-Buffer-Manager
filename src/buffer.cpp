@@ -67,7 +67,7 @@ void BufMgr::unPinPage(File* file, const PageId pageNo, const bool dirty)
 		{
 			if (bufDescTable[i].pinCnt == 0)
 			{
-				throw new PageNotPinnedException(file.filename_, pageNo,
+				throw new PageNotPinnedException(file->filename(), pageNo,
 					bufDescTable[i].frameNo);
 			}
 			else
