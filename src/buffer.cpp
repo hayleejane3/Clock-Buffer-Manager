@@ -133,17 +133,14 @@ void BufMgr::unPinPage(File* file, const PageId pageNo, const bool dirty) {
 }
 
 void BufMgr::allocPage(File* file, PageId &pageNo, Page*& page) {
-	*page = file->allocatePage();
-	pageNo = page->page_number();
+	Page alloc_page = file->allocatePage();
+	pageNo = alloc_page.page_number();
 	FrameId frame;
 	allocBuf(frame);
 	hashTable->insert(file, pageNo, frame);
-
-	for (std::uint32_t i = 0; i < numBufs; i++) {
-  	if (bufDescTable[i].file == file && bufDescTable[i].pageNo == pageNo && bufDescTable[i].frameNo == frame) {
-			bufDescTable[i].Set(file, pageNo);
-		}
-	}
+	bufDescTable[frame].Set(file, pageNo);
+	page = &bufPool[frame];
+	
 }
 
 void BufMgr::flushFile(const File* file) {
