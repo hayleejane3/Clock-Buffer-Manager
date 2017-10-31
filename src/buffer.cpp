@@ -104,7 +104,8 @@ void BufMgr::disposePage(File* file, const PageId PageNo)
 		bufDescTable[frameNo].Clear();
 		
 	} catch(HashNotFoundException h) {
-		
+		//in case lookup fails
+		//do nothing
 	}
 
 	file->deletePage(PageNo); 
