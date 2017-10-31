@@ -14,7 +14,7 @@
 #include "exceptions/bad_buffer_exception.h"
 #include "exceptions/hash_not_found_exception.h"
 
-namespace badgerdb { 
+namespace badgerdb {
 
 //----------------------------------------
 // Constructor of the class BufMgr
@@ -24,7 +24,7 @@ BufMgr::BufMgr(std::uint32_t bufs)
 	: numBufs(bufs) {
 	bufDescTable = new BufDesc[bufs];
 
-  for (FrameId i = 0; i < bufs; i++) 
+  for (FrameId i = 0; i < bufs; i++)
   {
   	bufDescTable[i].frameNo = i;
   	bufDescTable[i].valid = false;
@@ -50,27 +50,63 @@ void BufMgr::advanceClock()
 }
 
 // TODO(sahibgoa)
-void BufMgr::allocBuf(FrameId & frame) 
+void BufMgr::allocBuf(FrameId & frame)
 {
 }
 
-// TODO(sahibgoa)	
+// TODO(sahibgoa)
 void BufMgr::readPage(File* file, const PageId pageNo, Page*& page)
 {
 }
 
 // TODO(hayleejane)
-void BufMgr::unPinPage(File* file, const PageId pageNo, const bool dirty) 
+void BufMgr::unPinPage(File* file, const PageId pageNo, const bool dirty)
 {
+	for (std::uint32_t i = 0; i < numBufs; i++)
+  {
+  	if (bufDescTable[i].file == file && bufDescTable[i].pageNo == pageNo)
+		{
+			if (bufDescTable[i].pinCnt == 0)
+			{
+				throw new PageNotPinnedException(file->filename(), pageNo,
+					bufDescTable[i].frameNo);
+			}
+			else
+			{
+				bufDescTable[i].pinCnt--;
+			}
+
+			if (dirty == true)
+			{
+				bufDescTable[i].dirty = true;
+			}
+
+			// Assuming that only one frame matches for a (file, PageNo)
+			break;
+		}
+  }
 }
 
 // TODO(hayleejane)
-void BufMgr::allocPage(File* file, PageId &pageNo, Page*& page) 
+void BufMgr::allocPage(File* file, PageId &pageNo, Page*& page)
 {
+	*page = file->allocatePage();
+	pageNo = page->page_number();
+	FrameId frame;
+	allocBuf(frame);
+	hashTable->insert(file, pageNo, frame);
+
+	for (std::uint32_t i = 0; i < numBufs; i++)
+  {
+  	if (bufDescTable[i].file == file && bufDescTable[i].pageNo == pageNo && bufDescTable[i].frameNo == frame)
+		{
+			bufDescTable[i].Set(file, pageNo);
+		}
+	}
 }
 
 // TODO(sreejita)
-void BufMgr::flushFile(const File* file) 
+void BufMgr::flushFile(const File* file)
 {
 	for(FrameId i = 0; i < numBufs; i++) {
 		if(bufDescTable[i].file == file) {
@@ -111,11 +147,11 @@ void BufMgr::disposePage(File* file, const PageId PageNo)
 	file->deletePage(PageNo); 
 }
 
-void BufMgr::printSelf(void) 
+void BufMgr::printSelf(void)
 {
   BufDesc* tmpbuf;
 	int validFrames = 0;
-  
+
   for (std::uint32_t i = 0; i < numBufs; i++)
 	{
   	tmpbuf = &(bufDescTable[i]);
