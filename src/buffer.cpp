@@ -99,15 +99,15 @@ void BufMgr::readPage(File* file, const PageId pageNo, Page*& page) {
     FrameId frame;
     try {
         hashTable->lookup(file, pageNo, frame);
-				bufDescTable[frame].refbit = true;
-				bufDescTable[frame].pinCnt++;
-				page = &bufPool[frame];
+		bufDescTable[frame].refbit = true;
+		bufDescTable[frame].pinCnt++;
+		page = &bufPool[frame];
     } catch (const HashNotFoundException& e) {
         allocBuf(frame);
-				file->readPage(pageNo);
+		bufPool[frame] = file->readPage(pageNo);
         hashTable->insert(file, pageNo, frame);
-				bufDescTable[frame].Set(file, pageNo);
-				page = &bufPool[frame];
+		bufDescTable[frame].Set(file, pageNo);
+		page = &bufPool[frame];
     }
 }
 
