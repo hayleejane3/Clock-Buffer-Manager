@@ -46,6 +46,7 @@ BufMgr::~BufMgr() {
 // TODO(sreejita)
 void BufMgr::advanceClock()
 {
+	clockHand = (clockHand + 1) % numBufs;
 }
 
 // TODO(sahibgoa)
@@ -71,11 +72,42 @@ void BufMgr::allocPage(File* file, PageId &pageNo, Page*& page)
 // TODO(sreejita)
 void BufMgr::flushFile(const File* file) 
 {
+	for(FrameId i = 0; i < numBufs; i++) {
+		if(bufDescTable[i].file == file) {
+			if(!bufDescTable[i].valid)
+				throw BadBufferException(bufDescTable[i].frameNo, bufDescTable[i].dirty, bufDescTable[i].valid, bufDescTable[i].refbit);
+			
+			if(bufDescTable[i].pinCnt > 0)
+				throw PagePinnedException(file->filename(), bufDescTable[i].pageNo, bufDescTable[i].frameNo);
+				
+			if(bufDescTable[i].dirty) {
+				File* f = bufDescTable[i].file;
+				Page pflush = bufPool[bufDescTable[i].frameNo];
+				f->writePage(pflush);
+				bufDescTable[i].dirty = false;
+			}
+			
+			hashTable->remove(file, bufDescTable[i].pageNo);
+			bufDescTable[i].Clear();
+		}
+	}
 }
 
 // TODO(sreejita)
 void BufMgr::disposePage(File* file, const PageId PageNo)
-{
+{	
+	FrameId frameNo;
+	
+	try{
+		hashTable->lookup(file, PageNo, frameNo);
+		hashTable->remove(file, PageNo);
+		bufDescTable[frameNo].Clear();
+		
+	} catch(HashNotFoundException h) {
+		
+	}
+
+	file->deletePage(PageNo); 
 }
 
 void BufMgr::printSelf(void) 
