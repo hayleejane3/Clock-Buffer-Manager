@@ -88,7 +88,6 @@ void BufMgr::allocBuf(FrameId & frame) {
 
 			traversedFrames++;
 		
-
 		} 
 
 		// If we didn't find a frame to evict (all were pinned) then throw exception
@@ -123,23 +122,22 @@ void BufMgr::readPage(File* file, const PageId pageNo, Page*& page) {
 
 void BufMgr::unPinPage(File* file, const PageId pageNo, const bool dirty) {
 	for (std::uint32_t i = 0; i < numBufs; i++) {
-  	if (bufDescTable[i].file == file && bufDescTable[i].pageNo == pageNo) {
-			if (bufDescTable[i].pinCnt == 0) {
-				throw new PageNotPinnedException(file->filename(), pageNo,
-					bufDescTable[i].frameNo);
+	  	if (bufDescTable[i].file == file && bufDescTable[i].pageNo == pageNo) {
+				if (bufDescTable[i].pinCnt == 0) {
+					throw PageNotPinnedException(file->filename(), pageNo, bufDescTable[i].frameNo);
+				}
+				else {
+					bufDescTable[i].pinCnt--;
+				}
+	
+				if (dirty == true) {
+					bufDescTable[i].dirty = true;
+				}
+	
+				// Assuming that only one frame matches for a (file, PageNo)
+				break;
 			}
-			else {
-				bufDescTable[i].pinCnt--;
-			}
-
-			if (dirty == true) {
-				bufDescTable[i].dirty = true;
-			}
-
-			// Assuming that only one frame matches for a (file, PageNo)
-			break;
-		}
-  }
+    }
 }
 
 void BufMgr::allocPage(File* file, PageId &pageNo, Page*& page) {
