@@ -49,10 +49,14 @@ void BufMgr::advanceClock() {
 }
 
 void BufMgr::allocBuf(FrameId & frame) {
-    FrameId freeFrameIdx = numBufs, beginClock = clockHand;
-
+	
+   // FrameId freeFrameIdx = numBufs;
+    bool found = false;
+	std::uint32_t traversedFrames = 0;
 		// Use Clock Algorithm to find a free frame
-		do {
+		while(traversedFrames <= numBufs) {
+			// Advance the clock
+			advanceClock();
 			// If it's valid check other fields otherwise we have a free frame
 			if (bufDescTable[clockHand].valid) {
 				// If the refbit's set clear it otherwise continue checking other fields
@@ -61,38 +65,44 @@ void BufMgr::allocBuf(FrameId & frame) {
 					if (bufDescTable[clockHand].pinCnt == 0) {
 						// If the dirty bit is set, flush the page to disk and then proceed
 						if (bufDescTable[clockHand].dirty) {
-							flushFile(bufDescTable[clockHand].file);
+							bufDescTable[clockHand].file->writePage(bufPool[clockHand]);
+							bufDescTable[clockHand].dirty= false;
 						}
 
 						// Remove the valid entry from the hash table
-						hashTable->remove(
-							bufDescTable[clockHand].file,
-							bufDescTable[clockHand].pageNo
-						);
+						hashTable->remove(bufDescTable[clockHand].file, bufDescTable[clockHand].pageNo);
 
-						// Clear the fields to prepare frame for new user
-						bufDescTable[clockHand].Clear();
 
-						freeFrameIdx = clockHand;
+					//	freeFrameIdx = clockHand;
+						found = true;
+						break;
 					}
 				} else {
 					bufDescTable[clockHand].refbit = false;
 				}
 			} else {
-				freeFrameIdx = clockHand;
+			//	freeFrameIdx = clockHand;
+				found = true;
+				break;
 			}
 
-			// Advance the clock
-			advanceClock();
+			traversedFrames++;
+		
 
-		} while (freeFrameIdx == numBufs && clockHand != beginClock);
+		} 
 
 		// If we didn't find a frame to evict (all were pinned) then throw exception
-		if (freeFrameIdx == numBufs)
+		if (!found && traversedFrames>numBufs)
 			throw BufferExceededException();
+			
+			// Clear the fields to prepare frame for new user
+			bufDescTable[clockHand].Clear();
 
 		// Return frame by reference
-		frame = freeFrameIdx;
+		frame = clockHand;
+		
+		
+	
 }
 
 void BufMgr::readPage(File* file, const PageId pageNo, Page*& page) {
@@ -137,6 +147,7 @@ void BufMgr::allocPage(File* file, PageId &pageNo, Page*& page) {
 	pageNo = alloc_page.page_number();
 	FrameId frame;
 	allocBuf(frame);
+	bufPool[frame]= alloc_page;
 	hashTable->insert(file, pageNo, frame);
 	bufDescTable[frame].Set(file, pageNo);
 	page = &bufPool[frame];
