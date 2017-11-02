@@ -131,25 +131,24 @@ namespace badgerdb {
 	}
 
 	void BufMgr::unPinPage(File* file, const PageId pageNo, const bool dirty) {
-		// Look for frame containing (file, PageNo)
-		for (std::uint32_t i = 0; i < numBufs; i++) {
-		 	if (bufDescTable[i].file == file && bufDescTable[i].pageNo == pageNo) {
-				// Decrement pin count of frame. Throw exception if pin count is already 0
-				if (bufDescTable[i].pinCnt == 0) {
-					throw PageNotPinnedException(file->filename(), pageNo, bufDescTable[i].frameNo);
-				} else {
-					bufDescTable[i].pinCnt--;
-				}
+		FrameId frame;
+	  try {
+			// Look for frame containing (file, PageNo)
+	    hashTable->lookup(file, pageNo, frame);
 
-				// Set dirty bit to true if 'dirty' is true
-				if (dirty == true) {
-					bufDescTable[i].dirty = true;
-				}
-
-				// Assuming that only one frame matches for a (file, PageNo)
-				break;
+			// Decrement pin count of frame. Throw exception if pin count is already 0
+			if (bufDescTable[frame].pinCnt == 0) {
+				throw PageNotPinnedException(file->filename(), pageNo, frame);
+			} else {
+				bufDescTable[frame].pinCnt--;
 			}
-	  }
+
+			// Set dirty bit to true if 'dirty' is true
+			if (dirty == true) {
+				bufDescTable[frame].dirty = true;
+			}
+		} catch (const HashNotFoundException& e) {
+		}
 	}
 
 	void BufMgr::allocPage(File* file, PageId &pageNo, Page*& page) {
