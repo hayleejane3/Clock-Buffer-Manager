@@ -36,25 +36,16 @@ namespace badgerdb {
 	  clockHand = bufs - 1;
 	}
 
-	//----------------------------------------
-	// Destructor of the class BufMgr
-	//----------------------------------------
 	BufMgr::~BufMgr() {
 	  delete hashTable;
 	  delete[] bufPool;
 	  delete[] bufDescTable;
 	}
 
-	//----------------------------------------
-	// Advances clock to next frame in the buffer pool
-	//----------------------------------------
 	void BufMgr::advanceClock() {
 		clockHand = (clockHand + 1) % numBufs;
 	}
 
-	//----------------------------------------
-	// Allocates a free frame using the clock algorithm
-	//----------------------------------------
 	void BufMgr::allocBuf(FrameId & frame) {
 		// FrameId freeFrameIdx = numBufs;
 	  bool found = false;
@@ -105,9 +96,6 @@ namespace badgerdb {
 		frame = clockHand;
 	}
 
-	//----------------------------------------
-	// Read a particular page from a file
-	//----------------------------------------
 	void BufMgr::readPage(File* file, const PageId pageNo, Page*& page) {
 	  FrameId frame;
 	  try {
@@ -142,9 +130,6 @@ namespace badgerdb {
 	  }
 	}
 
-	//----------------------------------------
-	// Decrements the pinCnt of the frame containing (file, PageNo)
-	//----------------------------------------
 	void BufMgr::unPinPage(File* file, const PageId pageNo, const bool dirty) {
 		// Look for frame containing (file, PageNo)
 		for (std::uint32_t i = 0; i < numBufs; i++) {
@@ -167,9 +152,6 @@ namespace badgerdb {
 	  }
 	}
 
-	//----------------------------------------
-	// Allocates a new page in the specified file
-	//----------------------------------------
 	void BufMgr::allocPage(File* file, PageId &pageNo, Page*& page) {
 		// Allocate an empty page in the file
 		Page alloc_page = file->allocatePage();
@@ -189,9 +171,6 @@ namespace badgerdb {
 		page = &bufPool[frame];
 	}
 
-	//----------------------------------------
-	// Flushes all pages belonging to the file from the buffer
-	//----------------------------------------
 	void BufMgr::flushFile(const File* file) {
 		for (FrameId i = 0; i < numBufs; i++) {
 			if (bufDescTable[i].file == file) {
@@ -220,9 +199,6 @@ namespace badgerdb {
 		}
 	}
 
-	//----------------------------------------
-	// Deletes a particular page from file
-	//----------------------------------------
 	void BufMgr::disposePage(File* file, const PageId PageNo) {
 		FrameId frameNo;
 
