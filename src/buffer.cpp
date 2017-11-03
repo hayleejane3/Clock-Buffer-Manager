@@ -63,6 +63,8 @@ namespace badgerdb {
 						// If the dirty bit is set, flush the page to disk and then proceed
 						if (bufDescTable[clockHand].dirty) {
 							bufDescTable[clockHand].file->writePage(bufPool[clockHand]);
+							bufStats.diskwrites++;
+							bufStats.accesses++;
 							bufDescTable[clockHand].dirty= false;
 						}
 
@@ -118,6 +120,7 @@ namespace badgerdb {
 
 			// Read the page from disk into the buffer pool frame
 		  bufPool[frame] = file->readPage(pageNo);
+			bufStats.diskreads++;
 
 			// Insert an entry for the page in the hash table
 	    hashTable->insert(file, pageNo, frame);
@@ -128,6 +131,7 @@ namespace badgerdb {
 			// Return a pointer to the frame
 		  page = &bufPool[frame];
 	  }
+		bufStats.accesses++;
 	}
 
 	void BufMgr::unPinPage(File* file, const PageId pageNo, const bool dirty) {
@@ -148,6 +152,7 @@ namespace badgerdb {
 				bufDescTable[frame].dirty = true;
 			}
 		} catch (const HashNotFoundException& e) {
+			// Do nothing if page is not found in the hash table lookup
 		}
 	}
 
@@ -160,7 +165,8 @@ namespace badgerdb {
 		// Obtain a buffer pool frame
 		FrameId frame;
 		allocBuf(frame);
-		bufPool[frame]= alloc_page;
+		bufPool[frame] = alloc_page;
+		bufStats.accesses++;
 
 		// Insert entry in hash table
 		hashTable->insert(file, pageNo, frame);
@@ -168,6 +174,7 @@ namespace badgerdb {
 		// Set up frame
 		bufDescTable[frame].Set(file, pageNo);
 		page = &bufPool[frame];
+		bufStats.accesses++;
 	}
 
 	void BufMgr::flushFile(const File* file) {
@@ -185,7 +192,9 @@ namespace badgerdb {
 				if (bufDescTable[i].dirty) {
 					File* f = bufDescTable[i].file;
 					Page pflush = bufPool[bufDescTable[i].frameNo];
+					bufStats.accesses++;
 					f->writePage(pflush);
+					bufStats.diskwrites++;
 					bufDescTable[i].dirty = false;
 				}
 
