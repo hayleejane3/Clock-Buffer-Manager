@@ -28,7 +28,7 @@ RecordId rid[num], rid2, rid3;
 Page *page, *page2, *page3;
 char tmpbuf[100];
 BufMgr* bufMgr;
-File *file1ptr, *file2ptr, *file3ptr, *file4ptr, *file5ptr;
+File *file1ptr, *file2ptr, *file3ptr, *file4ptr, *file5ptr, *file6ptr;
 
 void test1();
 void test2();
@@ -36,9 +36,12 @@ void test3();
 void test4();
 void test5();
 void test6();
+void test7();
+void test8();
+void test9();
 void testBufMgr();
 
-int main() 
+int main()
 {
 	//Following code shows how to you File and Page classes
 
@@ -55,7 +58,7 @@ int main()
   {
     // Create a new database file.
     File new_file = File::create(filename);
-    
+
     // Allocate some pages and put data on them.
     PageId third_page_number;
     for (int i = 0; i < 5; ++i) {
@@ -112,6 +115,7 @@ void testBufMgr()
   const std::string& filename3 = "test.3";
   const std::string& filename4 = "test.4";
   const std::string& filename5 = "test.5";
+	const std::string& filename6 = "test.6";
 
   try
 	{
@@ -120,6 +124,7 @@ void testBufMgr()
     File::remove(filename3);
     File::remove(filename4);
     File::remove(filename5);
+		File::remove(filename6);
   }
 	catch(FileNotFoundException e)
 	{
@@ -130,15 +135,17 @@ void testBufMgr()
 	File file3 = File::create(filename3);
 	File file4 = File::create(filename4);
 	File file5 = File::create(filename5);
+	File file6 = File::create(filename6);
 
 	file1ptr = &file1;
 	file2ptr = &file2;
 	file3ptr = &file3;
 	file4ptr = &file4;
 	file5ptr = &file5;
+	file6ptr = &file6;
 
 	//Test buffer manager
-	//Comment tests which you do not wish to run now. Tests are dependent on their preceding tests. So, they have to be run in the following order. 
+	//Comment tests which you do not wish to run now. Tests are dependent on their preceding tests. So, they have to be run in the following order.
 	//Commenting  a particular test requires commenting all tests that follow it else those tests would fail.
 	test1();
 	test2();
@@ -146,13 +153,17 @@ void testBufMgr()
 	test4();
 	test5();
 	test6();
-
+	test7();
+	test8();
+	test9();
+	delete bufMgr;
 	//Close files before deleting them
 	file1.~File();
 	file2.~File();
 	file3.~File();
 	file4.~File();
 	file5.~File();
+	file6.~File();
 
 	//Delete files
 	File::remove(filename1);
@@ -160,8 +171,8 @@ void testBufMgr()
 	File::remove(filename3);
 	File::remove(filename4);
 	File::remove(filename5);
-
-	delete bufMgr;
+	File::remove(filename6);
+	
 
 	std::cout << "\n" << "Passed all tests." << "\n";
 }
@@ -196,7 +207,7 @@ void test2()
 	//Writing and reading back multiple files
 	//The page number and the value should match
 
-	for (i = 0; i < num/3; i++) 
+	for (i = 0; i < num/3; i++)
 	{
 		bufMgr->allocPage(file2ptr, pageno2, page2);
 		sprintf((char*)tmpbuf, "test.2 Page %u %7.1f", pageno2, (float)pageno2);
@@ -314,8 +325,70 @@ void test6()
 
 	std::cout << "Test 6 passed" << "\n";
 
-	for (i = 1; i <= num; i++) 
+	for (i = 1; i <= num; i++)
 		bufMgr->unPinPage(file1ptr, i, true);
 
 	bufMgr->flushFile(file1ptr);
 }
+
+// Test unPinPage for page not in hashtable
+void test7()
+{
+	// Nothing done if page is not found in hash table lookup
+	bufMgr->unPinPage(file1ptr, num + 1, true);
+
+	std::cout << "Test 7 passed" << "\n";
+}
+
+// Test for correct setting of dirty bit in unPinPage
+void test8()
+{
+	pageno1 = 1;
+
+	//Allocating page in a file
+	bufMgr->allocPage(file6ptr, pageno1, page);
+
+	// Set dirty bit
+	bufMgr->unPinPage(file6ptr, pageno1, true);
+
+	// Read page to reset pin count
+	bufMgr->readPage(file6ptr, pageno1, page);
+
+	// Unpin page
+	bufMgr->unPinPage(file6ptr, pageno1, false);
+
+  // Clear stats to test whether file was written due to dity bit being set
+	bufMgr->clearBufStats();
+
+	// Make sure that dirty = false does not change the dirty setting.
+	bufMgr->flushFile(file6ptr);
+	if (bufMgr->getBufStats().diskwrites != 1)
+		PRINT_ERROR("ERROR :: Dirty bit for page was set to false. It should not have been reset since 'dirty' was false.");
+
+	std::cout << "Test 8 passed" << "\n";
+}
+
+void test9()
+{
+	pageno2 = 2;
+
+	//Allocating page in a file
+	bufMgr->allocPage(file6ptr, pageno2, page);
+
+	// Dispose page from file
+	bufMgr->disposePage(file6ptr, pageno2);
+	
+	try
+	{
+		bufMgr->readPage(file6ptr, pageno2, page);
+		PRINT_ERROR("ERROR :: Page 2 should not exist. Exception should have been thrown before execution reaches this point.");
+	}
+	catch(InvalidPageException e)
+	{
+	}
+
+
+
+	std::cout << "Test 9 passed" << "\n";
+}
+
