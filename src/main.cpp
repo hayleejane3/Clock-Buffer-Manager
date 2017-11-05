@@ -157,6 +157,7 @@ void testBufMgr()
 	test8();
 	test9();
 	delete bufMgr;
+
 	//Close files before deleting them
 	file1.~File();
 	file2.~File();
@@ -172,7 +173,6 @@ void testBufMgr()
 	File::remove(filename4);
 	File::remove(filename5);
 	File::remove(filename6);
-	
 
 	std::cout << "\n" << "Passed all tests." << "\n";
 }
@@ -368,6 +368,7 @@ void test8()
 	std::cout << "Test 8 passed" << "\n";
 }
 
+
 void test9()
 {
 	pageno2 = 2;
@@ -391,4 +392,3 @@ void test9()
 
 	std::cout << "Test 9 passed" << "\n";
 }
-
